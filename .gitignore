@@ -22,4 +22,5 @@ Thumbs.db
 .ruff_cache/
 
 # Systemd user service (user-specific)
-*.service
+systemd/*.service
+!systemd/wallpaper-changer.service

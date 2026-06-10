@@ -1,0 +1,13 @@
+[Unit]
+Description=Wallpaper Changer — rotate wallpapers automatically
+Documentation=https://github.com/YOUR_USER/wallpaper-changer
+
+[Service]
+Type=simple
+Environment=PYTHONUNBUFFERED=1
+ExecStart={{BIN}} --dir {{WALLPAPER_DIR}}/{{THEME}}
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

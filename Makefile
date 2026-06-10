@@ -1,26 +1,37 @@
 PROJECT = wallpaper-changer
 PYTHON  = python3
+WALLPAPER_DIR = $(HOME)/.local/share/$(PROJECT)
+BIN_DIR  = $(HOME)/.local/bin
+THEME   ?= mixed
 
-.PHONY: install uninstall service-start service-stop service-restart service-logs clean
+.PHONY: install uninstall reinstall service-install service-remove service-start service-stop service-restart service-logs clean
 
 install:
-	pip install --user -e .
+	pipx install .
 
 uninstall:
-	pip uninstall $(PROJECT) -y
+	-rm -rf $(WALLPAPER_DIR)
+	pipx uninstall $(PROJECT)
+
+reinstall: uninstall install
 
 service-install:
-	@mkdir -p ~/.config/systemd/user
-	@sed 's|{{SCRIPT_DIR}}|$(CURDIR)|' systemd/wallpaper-changer.service > \
-		~/.config/systemd/user/wallpaper-changer.service
+	@mkdir -p $(WALLPAPER_DIR)
+	@cp -r wallpapers/* $(WALLPAPER_DIR)/
+	@mkdir -p $(HOME)/.config/systemd/user
+	@sed -e 's|{{BIN}}|$(BIN_DIR)/$(PROJECT)|' \
+	     -e 's|{{WALLPAPER_DIR}}|$(WALLPAPER_DIR)|' \
+	     -e 's|{{THEME}}|$(THEME)|' \
+	     systemd/wallpaper-changer.service > \
+	     $(HOME)/.config/systemd/user/wallpaper-changer.service
 	systemctl --user daemon-reload
 	systemctl --user enable wallpaper-changer
 	systemctl --user start wallpaper-changer
 
 service-remove:
-	systemctl --user stop wallpaper-changer 2>/dev/null || true
-	systemctl --user disable wallpaper-changer 2>/dev/null || true
-	rm -f ~/.config/systemd/user/wallpaper-changer.service
+	-systemctl --user stop wallpaper-changer 2>/dev/null
+	-systemctl --user disable wallpaper-changer 2>/dev/null
+	-rm -f $(HOME)/.config/systemd/user/wallpaper-changer.service
 	systemctl --user daemon-reload
 
 service-start:
