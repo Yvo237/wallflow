@@ -1,156 +1,83 @@
 #!/usr/bin/env python3
-"""Download exactly 18 wallpapers per theme from picsum.photos."""
+"""Download themed wallpapers from picsum.photos — 24 per theme."""
 
 import os
-import shutil
 import sys
 import time
 import urllib.request
 
 BASE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'wallpapers')
-NEED = 18
+NEED = 24
 
-THEMES = {
-    'anime': [
-        'japan',
-        'manga',
-        'artistic',
-        'sketch',
-        'colorful',
-        'vibrant',
-        'drawing',
-        'paint',
-        'fantasy',
-        'dreamy',
-        'illustration',
-        'comic',
-        'cartoon',
-        'creative',
-        'gallery',
-        'portrait',
-        'digital-art',
-        'watercolor',
-    ],
-    'ai': [
-        'neural',
-        'digital-brain',
-        'machine',
-        'algorithm',
-        'robot',
-        'cyborg',
-        'future',
-        'automation',
-        'deep-learning',
-        'smart',
-        'innovation',
-        'intelligence',
-        'processor',
-        'chip',
-        'circuit',
-        'server',
-        'compute',
-        'cognition',
-    ],
-    'cybersec': [
-        'cyber',
-        'security',
-        'firewall',
-        'encrypt',
-        'shield',
-        'lock',
-        'privacy',
-        'anonymous',
-        'dark-web',
-        'scan',
-        'defense',
-        'protocol',
-        'auth',
-        'secure',
-        'hacker',
-        'matrix',
-        'binary',
-        'cipher',
-    ],
-    'dev': [
-        'code',
-        'programming',
-        'developer',
-        'terminal',
-        'syntax',
-        'algorithm',
-        'software',
-        'database',
-        'framework',
-        'python',
-        'javascript',
-        'coding',
-        'debug',
-        'compile',
-        'version',
-        'commit',
-        'deploy',
-        'stack',
-    ],
-    'science': [
-        'math',
-        'physics',
-        'equation',
-        'formula',
-        'calculus',
-        'quantum',
-        'space',
-        'cosmos',
-        'gravity',
-        'molecule',
-        'atom',
-        'particle',
-        'geometry',
-        'fractal',
-        'nebula',
-        'galaxy',
-        'telescope',
-        'experiment',
-    ],
-    'music': [
-        'piano',
-        'guitar',
-        'melody',
-        'orchestra',
-        'concert',
-        'notes',
-        'sound',
-        'acoustic',
-        'vinyl',
-        'headphone',
-        'rhythm',
-        'symphony',
-        'jazz',
-        'classical',
-        'studio',
-        'beat',
-        'waveform',
-        'instrument',
-    ],
-    'data': [
-        'analytics',
-        'bigdata',
-        'dashboard',
-        'chart',
-        'statistics',
-        'database',
-        'network',
-        'cloud',
-        'visualization',
-        'insight',
-        'prediction',
-        'pipeline',
-        'warehouse',
-        'mining',
-        'pattern',
-        'report',
-        'metrics',
-        'graph',
-    ],
+THEME_SEEDS = {
+    'ai':           ['neural', 'circuit', 'processor', 'chip', 'server', 'robot',
+                     'algorithm', 'matrix', 'digital', 'compute', 'machine', 'core',
+                     'quantum', 'tech', 'brain', 'cognition', 'automation', 'data',
+                     'node', 'vector', 'cloud', 'network', 'system', 'logic'],
+    'anime':        ['japan', 'tokyo', 'temple', 'garden', 'cherry', 'lantern',
+                     'calligraphy', 'pagoda', 'kimono', 'bamboo', 'origami', 'zen',
+                     'mountain-fuji', 'japan-street', 'shrine', 'samurai', 'geisha',
+                     'osaka', 'kyoto', 'nara', 'hokkaido', 'japan-art', 'dojo', 'bonsai'],
+    'cybersec':     ['cyber', 'lock', 'shield', 'secure', 'privacy', 'encrypt',
+                     'firewall', 'anonymous', 'defense', 'protocol', 'vault',
+                     'guard', 'safe', 'protect', 'cipher', 'key', 'secure-line',
+                     'identity', 'scan', 'monitor', 'gate', 'access', 'stealth', 'armor'],
+    'dev':          ['code', 'terminal', 'keyboard', 'monitor', 'laptop', 'workspace',
+                     'developer', 'software', 'database', 'stack', 'debug', 'compile',
+                     'python', 'javascript', 'server', 'cloud', 'docker', 'linux',
+                     'git', 'desk-setup', 'coding', 'office', 'tech-desk', 'minimal-desk'],
+    'science':      ['microscope', 'laboratory', 'experiment', 'chemistry', 'biology',
+                     'physics', 'molecule', 'dna', 'telescope', 'space', 'galaxy',
+                     'nebula', 'planet', 'atom', 'crystal', 'fractal', 'math',
+                     'formula', 'gravity', 'particle', 'quantum', 'stellar', 'cosmos', 'satellite'],
+    'music':        ['piano', 'guitar', 'concert', 'studio', 'headphone', 'microphone',
+                     'vinyl', 'orchestra', 'instrument', 'speaker', 'dj', 'live-music',
+                     'acoustic', 'singer', 'band', 'drum', 'saxophone', 'trumpet',
+                     'violin', 'cello', 'harp', 'flute', 'organ', 'amplifier'],
+    'data':         ['analytics', 'dashboard', 'chart', 'graph', 'statistics',
+                     'network', 'cloud', 'database', 'server', 'visualization',
+                     'insight', 'predict', 'pipeline', 'cluster', 'warehouse',
+                     'metrics', 'report', 'mining', 'pattern', 'diagram',
+                     'infographic', 'map', 'flow', 'grid'],
+    'nature':       ['forest', 'mountain', 'ocean', 'river', 'waterfall', 'lake',
+                     'sunset', 'aurora', 'beach', 'valley', 'canyon', 'glacier',
+                     'desert', 'island', 'reef', 'volcano', 'meadow', 'alpine',
+                     'coast', 'cliff', 'cave', 'star', 'moon', 'rainbow'],
+    'retro':        ['vintage', 'retro-car', 'old-city', 'cassette', 'polaroid',
+                     'arcade', 'neon-sign', 'synthwave', 'eighties', 'retro-gaming',
+                     'old-school', 'classic-car', 'vintage-camera', 'retro-tv',
+                     'analog', 'record-player', 'typewriter', 'old-phone',
+                     'vintage-clock', 'retro-bike', 'old-radio', 'vintage-poster',
+                     'retro-train', 'classic-watch'],
+    'fantasy':      ['castle', 'dragon', 'knight', 'sword', 'magic', 'crystal',
+                     'crown', 'throne', 'shield', 'armor', 'tower', 'bridge',
+                     'stone', 'ruins', 'cathedral', 'chapel', 'monastery', 'gothic',
+                     'medieval', 'viking', 'celtic', 'mythical', 'enchanted', 'mystic'],
+    'cyberpunk':    ['neon', 'city-night', 'rain-night', 'street-lamp', 'cityscape',
+                     'skyline', 'night-city', 'bridge-night', 'highway-night',
+                     'china-town', 'shibuya', 'times-square', 'las-vegas',
+                     'tokyo-night', 'hong-kong', 'neon-light', 'city-rain',
+                     'downtown', 'urban-night', 'skyscraper', 'metropolis', 'futuristic',
+                     'night-market', 'cyber-city'],
+    'minimal':      ['minimal', 'simple', 'clean', 'geometry', 'pattern', 'white',
+                     'architecture-minimal', 'interior', 'space', 'light',
+                     'shadow', 'line', 'shape', 'form', 'texture', 'surface',
+                     'glass', 'steel', 'concrete', 'wood', 'paper', 'fabric',
+                     'monochrome', 'pastel'],
+    'abstract':     ['abstract', 'colorful', 'vibrant', 'pattern', 'texture',
+                     'gradient', 'geometric', 'fluid', 'wave', 'spiral',
+                     'mosaic', 'kaleidoscope', 'fractal', 'blur', 'bokeh',
+                     'light-paint', 'neon-abstract', 'liquid', 'smoke', 'ink',
+                     'paint-splash', 'graffiti', 'mandala', 'symmetry'],
+    'animals':      ['cat', 'dog', 'horse', 'bird', 'eagle', 'owl', 'wolf',
+                     'fox', 'deer', 'bear', 'lion', 'tiger', 'elephant',
+                     'giraffe', 'zebra', 'monkey', 'panda', 'koala', 'penguin',
+                     'dolphin', 'whale', 'butterfly', 'swan', 'parrot'],
+    'architecture': ['architecture', 'building', 'bridge', 'tower', 'facade',
+                     'interior', 'staircase', 'window', 'door', 'column',
+                     'modern-house', 'skyscraper', 'cathedral', 'museum',
+                     'library', 'stadium', 'theater', 'office', 'apartment',
+                     'hotel', 'shrine', 'temple', 'church', 'mosque'],
 }
 
 
@@ -169,17 +96,22 @@ def download(url, dest):
 
 
 total_ok = 0
-for theme, seeds in THEMES.items():
+for theme, seeds in sorted(THEME_SEEDS.items()):
     theme_dir = os.path.join(BASE, theme)
     os.makedirs(theme_dir, exist_ok=True)
 
-    print(f'[{theme}] downloading {NEED} images...')
-    count = 0
+    existing = {f for f in os.listdir(theme_dir) if f.endswith('.jpg')}
+    count = len(existing)
+    print(f'[{theme}] {count} existing, need {NEED}...')
+
     for i, seed in enumerate(seeds):
         if count >= NEED:
             break
-        fname = f'{theme}_{i + 1:02d}.jpg'
+        fname = f'{theme}_{count + 1:02d}.jpg'
         dest = os.path.join(theme_dir, fname)
+        if os.path.exists(dest):
+            count += 1
+            continue
         url = f'https://picsum.photos/seed/{seed}/1920/1080'
         sys.stdout.write(f'  {fname} ({seed})... ')
         sys.stdout.flush()
@@ -191,20 +123,7 @@ for theme, seeds in THEMES.items():
             total_ok += 1
         else:
             sys.stdout.write('FAIL\n')
-        time.sleep(0.5)
+        time.sleep(0.4)
     print(f'  -> {theme}: {count} images\n')
 
-# Mixed: copy from all themes
-mixed_dir = os.path.join(BASE, 'mixed')
-os.makedirs(mixed_dir, exist_ok=True)
-idx = 1
-for theme in THEMES:
-    src_dir = os.path.join(BASE, theme)
-    for f in sorted(os.listdir(src_dir)):
-        if f.endswith('.jpg'):
-            shutil.copy2(os.path.join(src_dir, f), os.path.join(mixed_dir, f'mixed_{idx:03d}.jpg'))
-            idx += 1
-
-mixed_count = len([f for f in os.listdir(mixed_dir) if f.endswith('.jpg')])
-print(f'=== Done: {total_ok} images downloaded ===')
-print(f'Mixed theme: {mixed_count} images')
+print(f'=== Done: {total_ok} new images downloaded ===')

@@ -10,14 +10,20 @@ from pathlib import Path
 import tomllib
 
 from . import __version__
-from .core import discover_images, set_wallpaper
+from .core import discover_images, discover_mixed_images, set_wallpaper
+from .transitions import apply_transition
 
 DEFAULT_DIR = os.path.expanduser('~/Pictures/Wallpapers')
 DEFAULT_INTERVAL = 45
 
 _PKG_DIR = Path(__file__).resolve().parent.parent
-THEMES_DIR = _PKG_DIR / 'wallpapers'
-AVAILABLE_THEMES = ['anime', 'ai', 'cybersec', 'dev', 'science', 'music', 'data', 'mixed']
+_DATA_DIR = Path.home() / '.local' / 'share' / 'wallpaper-changer'
+_THEMES_CANDIDATES = [_DATA_DIR, _PKG_DIR / 'wallpapers']
+THEMES_DIR = next((p for p in _THEMES_CANDIDATES if p.is_dir()), _DATA_DIR)
+AVAILABLE_THEMES = [
+    'abstract', 'ai', 'animals', 'anime', 'cyberpunk',
+    'cybersec', 'fantasy', 'nature', 'mixed',
+]
 CONFIG_PATH = Path('~/.config/wallpaper-changer.toml').expanduser()
 
 
@@ -51,6 +57,10 @@ def build_parser():
         '--no-dark', action='store_true', default=None, help='Skip dark-mode variant'
     )
     parser.add_argument(
+        '--mode', choices=['fit', 'fill'], default=None,
+        help='Image fit mode: fit shows full image (may letterbox), fill fills screen (may crop)'
+    )
+    parser.add_argument(
         '-V', '--version', action='version', version=f'wallpaper-changer v{__version__}'
     )
     return parser
@@ -67,23 +77,37 @@ def merge_args_with_config(args):
         args.interval if args.interval is not None else cfg.get('interval', DEFAULT_INTERVAL)
     )
     resolved.no_dark = args.no_dark if args.no_dark is not None else cfg.get('no_dark', False)
+    resolved.mode = args.mode or cfg.get('mode', 'fit')
     resolved.list_themes = args.list_themes
     return resolved
 
 
-def resolve_dir(namespace):
-    if namespace.list_themes:
-        print('Available themes:')
-        for t in AVAILABLE_THEMES:
+def list_themes():
+    """Print available themes and their image counts."""
+    print('Available themes:')
+    for t in AVAILABLE_THEMES:
+        if t == 'mixed':
+            total = 0
+            for other in AVAILABLE_THEMES:
+                if other == 'mixed':
+                    continue
+                td = THEMES_DIR / other
+                if td.is_dir():
+                    total += len([f for f in os.listdir(td) if f.endswith(('.jpg', '.png', '.jpeg', '.bmp', '.webp'))])
+            marker = ' ★'
+            print(f'  {t:12s}  ({total} images, interleaved from all themes){marker}')
+        else:
             td = THEMES_DIR / t
             count = (
-                len([f for f in os.listdir(td) if f.endswith(('.jpg', '.png'))])
+                len([f for f in os.listdir(td) if f.endswith(('.jpg', '.png', '.jpeg', '.bmp', '.webp'))])
                 if td.is_dir()
                 else 0
             )
-            marker = ' ★' if t == 'mixed' else ''
-            print(f'  {t:12s}  ({count} images){marker}')
-        sys.exit(0)
+            print(f'  {t:12s}  ({count} images)')
+    sys.exit(0)
+
+
+def resolve_dir(namespace):
     if namespace.dir:
         return namespace.dir
     if namespace.theme:
@@ -100,21 +124,38 @@ def main():
     signal.signal(signal.SIGTERM, lambda *_: sys.exit(0))
 
     args = merge_args_with_config(build_parser().parse_args())
-    img_dir = resolve_dir(args)
-    images = discover_images(img_dir)
+
+    if args.list_themes:
+        list_themes()
+
+    if args.theme == 'mixed' and not args.dir:
+        images = discover_mixed_images(str(THEMES_DIR))
+        source_label = f'mixed (interleaved from {THEMES_DIR})'
+    else:
+        img_dir = resolve_dir(args)
+        images = discover_images(img_dir)
+        source_label = img_dir
 
     if not images:
-        print(f'No images found in {img_dir}')
+        print(f'No images found')
         sys.exit(1)
+
+    fit_mode = args.mode == 'fit'
 
     print(f'wallpaper-changer v{__version__}')
     print(f'Interval: {args.interval}s  |  Images: {len(images)}')
-    print(f'Dir: {img_dir}')
+    print(f'Source: {source_label}')
+    print(f'Mode: {args.mode}')
     print('Press Ctrl+C to stop.\n')
 
+    prev_img = None
     while True:
         for img in images:
             name = os.path.basename(img)
             print(f'Wallpaper: {name}')
-            set_wallpaper(img, dark=not args.no_dark)
+            if prev_img is not None:
+                apply_transition(prev_img, img, dark=not args.no_dark, fit_mode=fit_mode)
+            else:
+                set_wallpaper(img, dark=not args.no_dark, fit_mode=fit_mode)
+            prev_img = img
             time.sleep(args.interval)

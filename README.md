@@ -61,11 +61,38 @@ python3 -m wallpaper_changer --interval 30
 | Argument | Default | Description |
 |----------|---------|-------------|
 | `-d, --dir` | `~/Pictures/Wallpapers` | Image directory |
-| `-t, --theme` | — | Theme: `anime`, `ai`, `cybersec`, `dev`, `science`, `music`, `data`, `mixed` |
+| `-t, --theme` | — | Theme: `abstract`, `ai`, `animals`, `anime`, `cyberpunk`, `cybersec`, `fantasy`, `nature`, `mixed` |
 | `--list-themes` | — | Show available themes and exit |
 | `-i, --interval` | `45` | Seconds between changes |
 | `--no-dark` | `false` | Skip dark-mode variant |
 | `-V, --version` | | Show version |
+
+#### Visual transitions (v1.1.0+)
+
+When changing wallpapers, a random visual effect is applied (requires ImageMagick). **6 transitions** available (fast enough for real-time use):
+
+| # | Transition | Description |
+|---|-----------|-------------|
+| 1 | **Crossfade** | Smooth dissolve between images |
+| 2 | **Circle reveal** | Growing circle uncovers the new wallpaper |
+| 3 | **Diamond reveal** | Diamond shape grows from center |
+| 4 | **Slide** | New image slides in from a random direction |
+| 5 | **Wipe** | Progressive reveal from one edge |
+| 6 | **Fade to black** | Cinematic fade through black |
+
+Without ImageMagick, wallpapers change instantly as before.
+
+#### Smart mixed mode (v1.1.0+)
+
+When using `--theme mixed`, the images are sourced **directly** from all other theme directories (no duplicate copies — the `wallpapers/mixed/` directory is no longer needed). The playlist is interleaved so no two consecutive images come from the same theme, ensuring maximum variety without wasted disk space.
+
+#### New themes (v1.1.0+)
+
+The project now includes **8 themes** (24 images each):
+
+`abstract` · `ai` · `animals` · `anime` · `cyberpunk` · `cybersec` · `fantasy` · `nature`
+
+Plus the virtual **`mixed`** theme that interleaves all of them.
 
 ### Service
 
@@ -134,16 +161,24 @@ wallpaper-changer/
 │   ├── __init__.py             # Version info
 │   ├── __main__.py             # python -m entry point
 │   ├── core.py                 # Image discovery & wallpaper logic
+│   ├── transitions.py          # Visual transition effects
 │   └── cli.py                  # Argument parser & main loop
-├── wallpapers/                 # Themes (18 images each)
-│   ├── anime/                  #   Anime, art, BD
+├── wallpapers/                 # Themes (24 images each)
+│   ├── abstract/               #   Abstrait
 │   ├── ai/                     #   Intelligence artificielle
+│   ├── animals/                #   Animaux
+│   ├── anime/                  #   Anime, manga
+│   ├── architecture/           #   Architecture
+│   ├── cyberpunk/              #   Cyberpunk
 │   ├── cybersec/               #   Cybersécurité
-│   ├── dev/                    #   Développement
-│   ├── science/                #   Maths, physique, espace
-│   ├── music/                  #   Musique, mélodie
 │   ├── data/                   #   Data science
-│   └── mixed/                  #   ★ Mix de tous les thèmes
+│   ├── dev/                    #   Développement
+│   ├── fantasy/                #   Fantastique
+│   ├── minimal/                #   Minimaliste
+│   ├── music/                  #   Musique
+│   ├── nature/                 #   Nature
+│   ├── retro/                  #   Rétro / Synthwave
+│   └── science/                #   Sciences
 ├── systemd/
 │   └── wallpaper-changer.service  # systemd unit template
 ├── scripts/
